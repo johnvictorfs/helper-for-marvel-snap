@@ -1,0 +1,10 @@
+[package]
+name = "linux-marvel-snap-helper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gdk = { version = "0.18.0", features = ["v3_24"] }
+gtk = { version = "0.18.1", features = ["v3_24"] }
+tao = "0.27.1"
+wry = "0.39.2"

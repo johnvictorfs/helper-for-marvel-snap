@@ -1,6 +1,6 @@
 # (WIP) Tracker Overlay for Marvel Snap
 
-A overlay for Linux that appears over the Marvel Snap game to help you keep track of cards in your deck (and in the future the opponent's deck as well).
+An overlay for Linux that appears over the Marvel Snap game to help you keep track of cards in your deck (and in the future the opponent's deck as well).
 
 ![overlay image](images/overlay.png)
 

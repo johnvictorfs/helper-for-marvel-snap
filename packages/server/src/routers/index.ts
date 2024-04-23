@@ -1,13 +1,13 @@
-import { EventEmitter } from "events";
 import { initTRPC } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+import { EventEmitter } from "events";
 import { jsonrepair } from "jsonrepair";
 
 import fs from "fs";
 import os from "os";
 import { z } from "zod";
 
-import cardData from '../cardData.json'
+import cardData from "../data/cardData.json";
 
 type PlayerState = {
   hand: CardData[];
@@ -28,7 +28,7 @@ const t = initTRPC.create();
 
 const defaultFolder = `${os.homedir()}/.steam/steam/steamapps/compatdata/1997040/pfx/drive_c/users/steamuser/AppData/LocalLow/Second Dinner/SNAP/Standalone/States/nvprod/`;
 
-export type CardData = typeof cardData[number];
+export type CardData = (typeof cardData)[number];
 
 const mappedCardData = cardData.reduce((acc, card) => {
   acc[card.defId] = card;
@@ -81,9 +81,13 @@ const cardMapper = (cards: { CardDefId: string }[]) => {
     return [];
   }
 
-  return cards.map((card: any) => {
-    return mappedCardData[card.CardDefId?.replace(/ /g, "").replace(/-/g, "")]
-  }).sort((a, b) => a.cost - b.cost);
+  return cards
+    .map((card: any) => {
+      return mappedCardData[
+        card.CardDefId?.replace(/ /g, "").replace(/-/g, "")
+      ];
+    })
+    .sort((a, b) => a.cost - b.cost);
 };
 
 const looseReadJson = (path: string) => {

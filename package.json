@@ -2,36 +2,14 @@
   "name": "helper-for-marvel-snap",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "tooling/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "server": "bun --hot src/server/main.ts",
-    "desktop": "cd src/desktop && cargo run",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tanstack/react-query": "latest",
-    "@trpc/client": "next",
-    "@trpc/react-query": "next",
-    "@trpc/server": "next",
-    "jsonrepair": "^3.6.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "ws": "^8.16.0",
-    "zod": "^3.22.4"
+    "dev": "turbo dev"
   },
   "devDependencies": {
-    "@types/bun": "^1.1.0",
-    "@types/node": "^20.12.7",
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@types/ws": "^8.5.10",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.3",
-    "typescript": "^5.0.2",
-    "vite": "^5.0.0"
+    "turbo": "^1.13.2"
   }
 }

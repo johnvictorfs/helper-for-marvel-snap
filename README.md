@@ -15,12 +15,9 @@ A overlay for Linux that appears over the Marvel Snap game to help you keep trac
 
 - Install dependencies
   - `bun install`
-  - `cd src/desktop && cargo build`
 
 - Running
-  - `bun server` to start the API
-  - `bun desktop` to start the overlay
-  - `bun dev` to start the overlay web page
+  - `bun dev`
 
 ## Known issues
 

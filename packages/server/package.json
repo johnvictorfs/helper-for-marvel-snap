@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@trpc/server": "next",
+    "chokidar": "^3.6.0",
     "jsonrepair": "^3.6.1",
     "ws": "^8.16.0",
     "zod": "^3.22.4"

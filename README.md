@@ -21,7 +21,7 @@ A overlay for Linux that appears over the Marvel Snap game to help you keep trac
 
 ## Known issues
 
-- Very often game state updates just don't happen and the overlay is outdated
+- Very often game state updates just don't happen and the overlay is outdated, the game window going out of focus usually triggers a refresh
 - Only supports your default display, which is not necessarily the one the game is running on
 - Overlay is always in a fixed position, not being able to move it (at least on i3wm)
 

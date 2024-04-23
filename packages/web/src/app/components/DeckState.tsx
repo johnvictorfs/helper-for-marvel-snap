@@ -9,34 +9,20 @@ export const DeckState = () => {
     "$HOME/.steam/steam/steamapps/compatdata/1997040/pfx/drive_c/users/steamuser/AppData/LocalLow/Second Dinner/SNAP/Standalone/States/nvprod/"
   );
 
-  const {
-    data: initialGameState,
-    refetch,
-    isLoading,
-  } = trpc.gameState.useQuery(
-    { path: gamePath },
-    {
-      refetchInterval: 3000,
-      refetchIntervalInBackground: true,
-    }
-  );
-
   trpc.onGameState.useSubscription(
     { path: gamePath },
     {
       onData(gameState) {
         if (gameState) {
           setCurrentState(gameState);
-        } else {
-          refetch();
         }
       },
     }
   );
 
-  const state = initialGameState ?? currentState;
+  const state = currentState;
 
-  if (!state && isLoading) {
+  if (!state) {
     return (
       <div className="flex justify-center items-center text-2xl animate-pulse h-[100vh] font-bold">
         Loading...
@@ -55,13 +41,7 @@ export const DeckState = () => {
 
             <div className="flex flex-wrap justify-center">
               {state.deck.cards?.map((card) => (
-                <SnapCard
-                  key={card.id}
-                  card={card}
-                  notDrawn={
-                    !state.cardsDrawn.includes(card.defId) || !state?.status
-                  }
-                />
+                <SnapCard key={card.id} card={card} />
               ))}
             </div>
           </div>

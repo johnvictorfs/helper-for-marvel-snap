@@ -1,12 +1,6 @@
 import type { CardData } from "@local/server/src/routers";
 
-export const SnapCard = ({
-  card,
-  notDrawn,
-}: {
-  card: CardData;
-  notDrawn: boolean;
-}) => {
+export const SnapCard = ({ card }: { card: CardData }) => {
   const url = `https://snapjson.untapped.gg/art/render/framebreak/common/256/${card.defId}.webp`;
 
   return (
@@ -28,8 +22,8 @@ export const SnapCard = ({
         src={url}
         alt={card.defId}
         className={`h-32 cursor-pointer object-cover transition-all duration-400
-           ${notDrawn ? "opacity-100" : "opacity-30"} ${
-          notDrawn ? "scale-100" : "scale-90"
+           ${card.drawn ? "opacity-30" : "opacity-100"} ${
+          card.drawn ? "scale-90" : "scale-100"
         }`}
       />
     </div>

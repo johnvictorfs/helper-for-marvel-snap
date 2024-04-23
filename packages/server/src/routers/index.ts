@@ -3,10 +3,11 @@ import { observable } from "@trpc/server/observable";
 import { EventEmitter } from "events";
 import { jsonrepair } from "jsonrepair";
 
-import fs from "fs";
 import os from "os";
 import { z } from "zod";
 
+import { $ } from "bun";
+import chokidar from "chokidar";
 import cardData from "../data/cardData.json";
 
 type PlayerState = {
@@ -17,7 +18,6 @@ type PlayerState = {
 
 export type GameState = {
   players: [PlayerState, PlayerState];
-  cardsDrawn: string[];
   deck: Deck | null;
   status: null | "Playing" | "Finished";
 };
@@ -28,7 +28,7 @@ const t = initTRPC.create();
 
 const defaultFolder = `${os.homedir()}/.steam/steam/steamapps/compatdata/1997040/pfx/drive_c/users/steamuser/AppData/LocalLow/Second Dinner/SNAP/Standalone/States/nvprod/`;
 
-export type CardData = (typeof cardData)[number];
+export type CardData = (typeof cardData)[number] & { drawn?: boolean };
 
 const mappedCardData = cardData.reduce((acc, card) => {
   acc[card.defId] = card;
@@ -40,8 +40,8 @@ type Deck = {
   cards: CardData[];
 };
 
-const getCurrentDeck = (): Deck | null => {
-  const playState = looseReadJson(defaultFolder + "PlayState.json");
+const getCurrentDeck = async (cardsDrawn?: string[]): Promise<Deck | null> => {
+  const playState = await looseReadJson(defaultFolder + "PlayState.json");
 
   if (!playState || !playState.SelectedDeckId) {
     return null;
@@ -52,7 +52,9 @@ const getCurrentDeck = (): Deck | null => {
     return null;
   }
 
-  const collectionState = looseReadJson(defaultFolder + "CollectionState.json");
+  const collectionState = await looseReadJson(
+    defaultFolder + "CollectionState.json"
+  );
 
   if (!collectionState || !collectionState.ServerState) {
     return null;
@@ -68,7 +70,7 @@ const getCurrentDeck = (): Deck | null => {
 
   return {
     name: deck.Name,
-    cards: cardMapper(deck.Cards),
+    cards: cardMapper(deck.Cards, cardsDrawn),
   };
 };
 
@@ -76,22 +78,34 @@ const EVENT = {
   GAME_STATE_CHANGE: "game-state-change",
 } as const;
 
-const cardMapper = (cards: { CardDefId: string }[]) => {
+const cardMapper = (cards: { CardDefId: string }[], drawn?: string[]) => {
   if (!cards) {
     return [];
   }
 
-  return cards
-    .map((card: any) => {
-      return mappedCardData[
-        card.CardDefId?.replace(/ /g, "").replace(/-/g, "")
-      ];
-    })
-    .sort((a, b) => a.cost - b.cost);
-};
+  return (
+    cards
+      .map((card: any) => {
+        const cardWithData =
+          mappedCardData[card.CardDefId?.replace(/ /g, "").replace(/-/g, "")];
 
-const looseReadJson = (path: string) => {
-  const rawText = fs.readFileSync(path, "utf-8");
+        if (!cardWithData) {
+          return;
+        }
+
+        if (drawn && drawn.includes(cardWithData.defId)) {
+          return { ...cardWithData, drawn: true };
+        }
+
+        return cardWithData;
+      })
+      .filter(Boolean) as CardData[]
+  ).sort((a, b) => a.cost - b.cost);
+};
+const looseReadJson = async (path: string) => {
+  const buffer = await $`cat ${path}`.arrayBuffer();
+  const rawText = new TextDecoder().decode(buffer);
+  // const rawText = fs.readFileSync(path, "utf-8");
 
   if (!rawText) {
     return null;
@@ -109,13 +123,12 @@ const looseReadJson = (path: string) => {
         return null;
       }
     } catch (error) {
-      fs.writeFileSync("errorFile.json", rawText);
       return null;
     }
   }
 };
 
-const parsedGameState = (path?: string): GameState | null => {
+const parsedGameState = async (path?: string): Promise<GameState | null> => {
   if (!path) {
     path = defaultFolder;
   }
@@ -124,7 +137,7 @@ const parsedGameState = (path?: string): GameState | null => {
 
   const gameStatePath = path + "GameState.json";
 
-  const game = looseReadJson(gameStatePath);
+  const game = await looseReadJson(gameStatePath);
 
   if (!game) {
     return null;
@@ -141,9 +154,11 @@ const parsedGameState = (path?: string): GameState | null => {
     gameStatus = "Finished";
   }
 
+  const cardsDrawn = game?.RemoteGame?.ClientPlayerInfo?.CardsDrawn || [];
+  const deck = await getCurrentDeck(cardsDrawn);
+
   const gameState: GameState = {
-    cardsDrawn: game?.RemoteGame?.ClientPlayerInfo?.CardsDrawn || [],
-    deck: getCurrentDeck(),
+    deck,
     status: gameStatus,
     players: [
       {
@@ -183,8 +198,8 @@ const parsedGameState = (path?: string): GameState | null => {
 export const appRouter = t.router({
   gameState: t.procedure
     .input(z.object({ path: z.string().optional() }).optional())
-    .query(({ input }) => {
-      const state = parsedGameState(input?.path);
+    .query(async ({ input }) => {
+      const state = await parsedGameState(input?.path);
       ee.emit(EVENT.GAME_STATE_CHANGE, state);
       return state;
     }),
@@ -203,9 +218,19 @@ export const appRouter = t.router({
           ? input.path.replace("$HOME", os.homedir()) + "GameState.json"
           : defaultFolder + "GameState.json";
 
-        const fsWatcher = fs.watch(gameStatePath, () => {
+        const watcher = chokidar.watch(gameStatePath, {
+          ignorePermissionErrors: true,
+          ignoreInitial: false,
+          persistent: true,
+          depth: 0,
+          usePolling: true,
+          interval: 3000,
+          alwaysStat: true,
+        });
+
+        const sendGameState = async () => {
           try {
-            const gameState = parsedGameState(input?.path);
+            const gameState = await parsedGameState(input?.path);
             if (!gameState) {
               return;
             }
@@ -214,13 +239,17 @@ export const appRouter = t.router({
           } catch (error) {
             console.error(error);
           }
-        });
+        };
+
+        watcher.on("change", sendGameState);
+        watcher.on("add", sendGameState);
 
         ee.on(EVENT.GAME_STATE_CHANGE, onGameStateChange);
 
         return () => {
           ee.off(EVENT.GAME_STATE_CHANGE, onGameStateChange);
-          fsWatcher.close();
+          // fsWatcher.removeAllListeners();
+          watcher.close();
         };
       });
     }),

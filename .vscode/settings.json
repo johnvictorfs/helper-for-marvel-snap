@@ -1,6 +1,6 @@
 {
   "rust-analyzer.linkedProjects": [
-    "src/desktop/Cargo.toml"
+    "packages/desktop/Cargo.toml"
   ],
   "[typescriptreact][typescript][json][javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
